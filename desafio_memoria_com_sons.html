@@ -1,0 +1,196 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Desafio de Memória</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f3f3f3;
+        }
+        #game-container {
+            display: grid;
+            grid-template-columns: repeat(5, 100px);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .number-box, .empty-box {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #007BFF;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 8px;
+            user-select: none;
+        }
+        .hidden {
+            background-color: #007BFF;
+            color: transparent;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Desafio de Memória</h1>
+    <p>Este é um desafio de memória inconvencional! Escolha um nível de dificuldade e teste sua capacidade de lembrar sequências numéricas.</p>
+    <label for="difficulty">Escolha o nível de dificuldade:</label>
+    <select id="difficulty">
+        <option value="5">Fácil</option>
+        <option value="9">Médio</option>
+        <option value="15">Difícil</option>
+    </select>
+    <div id="game-container"></div>
+    <button id="start-button">Iniciar Jogo</button>
+
+    <!-- Adicionando os sons -->
+    <audio id="start-sound" src="start.mp3"></audio>
+    <audio id="success-sound" src="success.mp3"></audio>
+    <audio id="error-sound" src="error.mp3"></audio>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const startButton = document.getElementById('start-button');
+        const difficultySelect = document.getElementById('difficulty');
+
+        const startSound = document.getElementById('start-sound');
+        const successSound = document.getElementById('success-sound');
+        const errorSound = document.getElementById('error-sound');
+
+        let numbers = [];
+        let currentStep = 0;
+        let currentLevel = 1;
+        const totalLevels = 5;
+        const totalSpaces = 15; // Always 15 spaces in the grid
+
+        function generateNumbers(level) {
+            numbers = Array.from({ length: level }, (_, i) => i + 1);
+        }
+
+        function generateGrid(level) {
+            const grid = Array(totalSpaces).fill(null);
+            const numberPositions = new Set();
+
+            while (numberPositions.size < level) {
+                const randomIndex = Math.floor(Math.random() * totalSpaces);
+                numberPositions.add(randomIndex);
+            }
+
+            let index = 0;
+            numberPositions.forEach(pos => {
+                grid[pos] = numbers[index++];
+            });
+
+            return grid;
+        }
+
+        function displayGrid(grid) {
+            gameContainer.innerHTML = '';
+            grid.forEach(num => {
+                const box = document.createElement('div');
+                if (num !== null) {
+                    box.classList.add('number-box');
+                    box.textContent = num;
+                } else {
+                    box.classList.add('empty-box');
+                    box.addEventListener('click', handleEmptyClick);
+                }
+                gameContainer.appendChild(box);
+            });
+            setTimeout(hideNumbers, 2000);
+        }
+
+        function hideNumbers() {
+            const boxes = document.querySelectorAll('.number-box');
+            boxes.forEach(box => {
+                box.classList.add('hidden');
+                box.addEventListener('click', handleClick);
+            });
+            numbers.sort((a, b) => a - b); // Sort numbers to enforce sequential clicking
+        }
+
+        function handleClick(e) {
+            const clickedNumber = parseInt(e.target.textContent, 10);
+            if (clickedNumber === numbers[currentStep]) {
+                successSound.currentTime = 0;
+                successSound.play();
+                e.target.classList.remove('hidden');
+                e.target.style.backgroundColor = '#28a745'; // Verde para indicar acerto
+                currentStep++;
+                if (currentStep === numbers.length) {
+                    if (currentLevel < totalLevels) {
+                        currentLevel++;
+                        alert(`Fase ${currentLevel - 1} completa! Vamos para a próxima fase.`);
+                        startNextLevel();
+                    } else {
+                        setTimeout(() => {
+                            alert('Parabéns! Você venceu todas as fases!');
+                            resetGame();
+                        }, 500);
+                    }
+                }
+            } else {
+                errorSound.currentTime = 0;
+                errorSound.play();
+                e.target.style.backgroundColor = '#dc3545'; // Vermelho para indicar erro
+                setTimeout(() => {
+                    alert('Erro! Tente novamente nesta fase.');
+                    startNextLevel();
+                }, 500);
+            }
+        }
+
+        function handleEmptyClick(e) {
+            errorSound.currentTime = 0;
+            errorSound.play();
+            e.target.style.backgroundColor = '#dc3545'; // Vermelho para indicar erro
+            setTimeout(() => {
+                alert('Erro! Você clicou em um quadrado vazio.');
+                startNextLevel();
+            }, 500);
+        }
+
+        function startNextLevel() {
+            currentStep = 0;
+            const level = parseInt(difficultySelect.value, 10);
+            generateNumbers(level);
+            const grid = generateGrid(level);
+            displayGrid(grid);
+        }
+
+        function resetGame() {
+            currentStep = 0;
+            currentLevel = 1;
+            startButton.disabled = false;
+            gameContainer.innerHTML = '';
+        }
+
+        function startGame() {
+            startSound.currentTime = 0;
+            startSound.play();
+            currentLevel = 1;
+            const level = parseInt(difficultySelect.value, 10);
+            generateNumbers(level);
+            const grid = generateGrid(level);
+            displayGrid(grid);
+            startButton.disabled = true;
+        }
+
+        startButton.addEventListener('click', startGame);
+    </script>
+</body>
+</html>
